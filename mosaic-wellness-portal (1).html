@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Mosaic Wellness — Price Management Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #f4f7f4;
+    --surface: #ffffff;
+    --surface2: #f0f5f1;
+    --border: #d8e5d9;
+    --accent: #2d7a4f;
+    --accent-light: #e8f4ed;
+    --accent2: #4a9e6b;
+    --dark: #1a3d2b;
+    --green-soft: #22c55e;
+    --red: #ef4444;
+    --text: #1c2e23;
+    --muted: #6b8c74;
+    --admin-clr: #7c3aed;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,0.10);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; min-height: 100vh; font-size: 14px; }
+
+  /* ── LOGIN ── */
+  #loginScreen {
+    display: flex; align-items: center; justify-content: center; min-height: 100vh;
+    background: linear-gradient(135deg, #1a3d2b 0%, #2d7a4f 60%, #4a9e6b 100%);
+  }
+  .login-box {
+    background: #fff; border-radius: 20px; padding: 48px 44px; width: 420px;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.22);
+  }
+  .login-logo-wrap { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .login-logo-img { height: 52px; }
+  .login-tagline { color: var(--muted); font-size: 13px; margin-bottom: 32px; font-weight: 400; }
+  .field-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 7px; display: block; }
+  .field-group { margin-bottom: 18px; }
+  input[type="text"], input[type="password"], input[type="number"], select, textarea {
+    width: 100%; background: var(--bg); border: 1.5px solid var(--border); color: var(--text);
+    border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: 'Inter', sans-serif;
+    outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45,122,79,0.12); }
+  .btn {
+    padding: 11px 22px; border-radius: 10px; border: none; cursor: pointer;
+    font-size: 13px; font-weight: 600; font-family: 'Inter', sans-serif;
+    transition: all 0.18s; display: inline-flex; align-items: center; gap: 7px;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--dark); }
+  .btn-full { width: 100%; justify-content: center; }
+  .btn-sm { padding: 7px 14px; font-size: 12px; border-radius: 8px; }
+  .btn-outline { background: transparent; border: 1.5px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { background: #dc2626; }
+  .login-err { color: var(--red); font-size: 13px; margin-top: 10px; display: none; }
+
+  /* ── APP LAYOUT ── */
+  #app { display: none; flex-direction: column; min-height: 100vh; }
+  header {
+    background: var(--dark); border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding: 0 28px; height: 60px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .header-logo-img { height: 34px; filter: brightness(0) invert(1); }
+  .header-divider { width: 1px; height: 26px; background: rgba(255,255,255,0.2); }
+  .header-title { color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 400; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .user-badge {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #fff;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .role-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .role-dot.admin { background: #a78bfa; }
+  .role-dot.editor { background: #fbbf24; }
+  .role-dot.viewer { background: #4ade80; }
+
+  /* ── SYNC BANNER ── */
+  #syncBanner {
+    background: #fef9e7; border-bottom: 1px solid #fde68a;
+    padding: 10px 28px; font-size: 12.5px; color: #92400e;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    display: none;
+  }
+  #syncBanner.visible { display: flex; }
+  #syncBanner b { color: #78350f; }
+
+  main { flex: 1; padding: 24px 28px; max-width: 1440px; margin: 0 auto; width: 100%; }
+
+  /* ── STATS ── */
+  .stats-bar { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 24px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+    padding: 18px 20px; box-shadow: var(--shadow);
+    border-left: 4px solid var(--accent);
+  }
+  .stat-val { font-size: 26px; font-weight: 700; color: var(--accent); line-height: 1; }
+  .stat-label { font-size: 11.5px; color: var(--muted); margin-top: 5px; font-weight: 500; }
+
+  /* ── TABS ── */
+  .tabs { display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 4px; width: fit-content; margin-bottom: 20px; box-shadow: var(--shadow); }
+  .tab { padding: 8px 20px; border-radius: 9px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--muted); transition: all 0.18s; }
+  .tab.active { background: var(--accent); color: #fff; }
+  .tab:hover:not(.active) { background: var(--accent-light); color: var(--accent); }
+
+  /* ── TOOLBAR ── */
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .search-wrap { position: relative; flex: 1; min-width: 220px; }
+  .search-wrap input { padding-left: 36px; background: var(--surface); }
+  .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--muted); pointer-events: none; }
+
+  /* ── TABLE ── */
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--surface2); }
+  th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid var(--border); }
+  td { padding: 13px 16px; font-size: 13.5px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--accent-light); }
+  .sku-code { font-family: 'DM Mono', monospace; font-size: 11.5px; color: var(--accent); background: var(--accent-light); padding: 3px 8px; border-radius: 5px; font-weight: 500; }
+  .price-val { font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 600; }
+  .price-val.mrp { color: var(--text); }
+  .price-val.asp { color: var(--accent); }
+  .brand-tag { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px; font-size: 11.5px; color: var(--muted); display: inline-block; }
+  .updated-badge { background: #fef9e7; color: #92400e; border: 1px solid #fde68a; border-radius: 5px; font-size: 10.5px; padding: 2px 7px; margin-left: 6px; vertical-align: middle; }
+  .empty-state { text-align: center; padding: 60px; color: var(--muted); }
+
+  /* ── MODAL ── */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(3px); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 32px 36px; width: 540px; max-width: 96vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-md); }
+  .modal h2 { font-size: 18px; font-weight: 700; margin-bottom: 22px; color: var(--dark); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-grid .full { grid-column: 1 / -1; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 22px; justify-content: flex-end; }
+  .price-change-note { background: var(--accent-light); border: 1px solid var(--border); border-radius: 9px; padding: 12px 14px; font-size: 12.5px; color: var(--accent); margin-bottom: 16px; }
+
+  /* ── HISTORY ── */
+  .history-list { display: flex; flex-direction: column; gap: 0; }
+  .history-item {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 0;
+    padding: 16px 20px; display: flex; align-items: flex-start; gap: 16px;
+    border-bottom: none; border-left: none; border-right: none;
+  }
+  .history-item:first-child { border-radius: 14px 14px 0 0; border-top: 1px solid var(--border); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .history-item:last-child { border-radius: 0 0 14px 14px; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .history-item:only-child { border-radius: 14px; border: 1px solid var(--border); }
+  .history-item:not(:first-child):not(:last-child) { border-left: 1px solid var(--border); border-right: 1px solid var(--border); }
+  .h-timeline { display: flex; flex-direction: column; align-items: center; gap: 0; flex-shrink: 0; padding-top: 4px; }
+  .h-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; border: 2px solid #fff; box-shadow: 0 0 0 2px var(--accent); background: var(--accent); }
+  .h-dot.created { box-shadow: 0 0 0 2px var(--green-soft); background: var(--green-soft); }
+  .h-dot.up { box-shadow: 0 0 0 2px var(--red); background: var(--red); }
+  .h-meta { font-size: 12px; color: var(--muted); margin-top: 5px; }
+  .h-change { font-family: 'DM Mono', monospace; font-size: 13px; }
+  .arrow-right { color: var(--muted); margin: 0 6px; }
+  .price-old { color: var(--muted); text-decoration: line-through; }
+  .price-new-up { color: var(--red); font-weight: 600; }
+  .price-new-down { color: var(--green-soft); font-weight: 600; }
+  .sku-timeline-wrap { margin-bottom: 20px; }
+  .sku-timeline-header { background: var(--dark); color: #fff; border-radius: 10px 10px 0 0; padding: 12px 18px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .sku-timeline-body { background: var(--surface); border: 1px solid var(--border); border-radius: 0 0 10px 10px; border-top: none; }
+  .timeline-row { padding: 14px 20px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr; gap: 12px; align-items: center; font-size: 13px; }
+  .timeline-row:last-child { border-bottom: none; }
+  .timeline-row.header-row { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; background: var(--surface2); }
+
+  /* ── ADMIN ── */
+  .users-list { display: flex; flex-direction: column; gap: 8px; }
+  .user-row { background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; }
+  .user-info { display: flex; align-items: center; gap: 11px; }
+  .notice { background: #fef9e7; border: 1px solid #fde68a; border-radius: 10px; padding: 13px 16px; font-size: 13px; color: #92400e; margin-bottom: 18px; }
+  .section-title { font-size: 15px; font-weight: 700; color: var(--dark); margin-bottom: 14px; }
+
+  /* ── SYNC CONFIG ── */
+  .sync-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 22px; box-shadow: var(--shadow); }
+  .sync-status { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .sync-status.connected { background: #dcfce7; color: #166534; }
+  .sync-status.disconnected { background: #fee2e2; color: #991b1b; }
+  .sync-status.syncing { background: #fef9e7; color: #92400e; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 640px) {
+    main { padding: 14px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-grid .full { grid-column: 1; }
+    header { padding: 0 14px; }
+    .header-title { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo-wrap">
+      <img class="login-logo-img" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADb/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCADIAMgDASIAAhEBAxEB/8QAHAABAAIDAQEBAAAAAAAAAAAAAAYHBAUIAwIB/8QATRAAAQMDAgMEBgMKCA8AAAAAAQACAwQFEQYhBxIxCBNBURQiYXGBkSMyshU2N0J0dbGzwtEWFyQ1UmJzoRglMzQ4RUZTcnaDk7TB8P/EABoBAQADAQEBAAAAAAAAAAAAAAABAgMEBQb/xAAyEQACAgEDAgIHBwUAAAAAAAAAAQIDEQQSITFBE1EFFCIyYXGBJTSRocHR8DNCseHx/9oADAMBAAIRAxEAPwDstERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAERYN2vNotEYkut1oaBjvquqahsQPu5iEIbS5ZnItbaNQWG8Ei0Xq3XAtGSKapZKQPaGkrZIE01lBF4V1ZSUNM6prqqClgb9aSaQMaPeTstRT600dUTCGn1XYpZScBjLhESfcA7dCHOMeGzfItcb7ZASDd6AEdQahv7160t0tlXJ3dLcaSd5/Fjma4/IFRkb4vuZiIiksEREAREQBERAEREAREQBEUS4vahu2luH1zvdkoRWVtO1vK0sLmxguAdIQNyGgk/p2yi5KzmoRcn0RLUVcdn3Wd/wBb6Mmud/o44poqp0MU8cZYydoAOQD5EkZG23mCrHUtYK1Wxtgpx6MIiKDQpLtFcXpdJZ0zpyRovUjA6eoLQ4UrD0AB25yN9+g38QudLJpzXHEO5VFXQUVwvVRzfT1Mj8tB8nSPIAPsz7l53SWp1vxOkLpcT3m6iNjnb8neScrR7gCB8F2wBY+H+kaakpKbuaKmAihijaOZ7vM+07kkrVtQR85GL9IWSnZLEInFuptC650R3Vxutorbcxrx3dXE8Oa13h67CQ0+WSCrI0L2iL1aNL1tBfYDdbhHGPudUv2y7piXG7gOuepwQeuR0bY7vaNZWmrppKTnhI7qopp2ghzXDx8CDuuJOKunY9KcQ7zYIHF0FLUfQ56iN4D2A+0NcAfckZKfUzvqloUraJ+yz0rrhrbiXqNrJZK++XB+THCxpLY2+PK0eqxvTfYeazL/AMIuINotr6+4aXqXU0Y5pDEWTFg8SWsJIA8TjAXUPAbTtr0dwoobi5kbaiupG19bPy5c4Obztb7mtIAHnnzUk0zrS3X24uoYoZoJcF0fPjDwPd0Kh2YeEbV+jITindN7pHGeh9a11oqoqK5TS1dtcQz13cz6fyc0nctHi3PTpg9b3rdP3ihoWXGSlcaRwDmzxOD24PR2R0B23Pmq77VukaDTmuKe5WyFlPT3eJ0z4WDDWzNOHkDwBy0+8lXh2aLpJfeDtBDW/TGkdLROLt+ZjT6oPua4D4KllaktyM9Lp83S083yuh78NNXVM1YyzXSZ03ebU8zzlwP9Enxz4H9+1kqgKMei6nibESO5rAG/B6v89FnB5R6+gslODjLsU5N2idERCubJTXVs1LkNjdC3Mzg7GGnm288nG3t2XrpTtBaHu7aoXD0qzPgidKBUgOEoH4rC07u8m438FVvZlsdtvHFu9zXKkgqm0UMssTJmB7Q8yhvNg7ZAJ+axu0fpu103G+2UFFSxUsN0gpnzsiaGt5nSujJAGwyGj47ro2xzg8/1zVeErsrGcYwWTB2ldHvuIgltN3ipS7l9ILGHA8y0Ozj5n2K6qCrpq+hgrqOZk9NURtlhkYctexwy1w9hBBVJdqTS1goeFENRb7TR0ctDVxMhdDC1hDCC0tyBkjcHfxAWXoO910q7KMV3p5X+l01uqRC/O7SJpGtPwGPkqtJrKOurUW12yruecLPBueIfG7R+j7pLaXGpudwhPLNFSAFsTv6LnkgZHiBnHis/Q3FWxamsZvVbE+wULpxTQT3KeKNlRJ4tjPNk48dgPkcVn2S9G2O5WW4aqu1HDcK51WYIfSGiQRANDi4A7czi7qd9tsZKnHaC0zoyXRMFz1BTV0NFaZ+dkds5I3O71wa5uCOXBOCT1269UaWcEV3amVbvbWPL92WhUzw0tNLU1ErIoYmF8j3nDWtAyST5AKs9P8bNMXqtu7qanrIrRaKcz1VymAazlzytDWbuJcTgDAK99O17+J3BigFMKYV9TSwRh5fyBrSxmT06gg/2VgQ8C9WV5FRdNaXCuq+hL3Vco389QSfmPcqraafT6Rqjxp08+FtXb1m4nAp3RxNfzFzgdoJAJAFbhrlqPVPDd+jbLp+1W6C03N7GPlllexkp7x23qkAAkFucnb1fPOm9IwXDS7JtRXi3VGo6NrXPuFbUtla0Nc0H5Rwwc+AwekuqZOC+rqiB8FTqKySwvaWuZJHKQQeoP1dlPeGf7KGb3z+jlj9SoOJOO2HHdUxhw/RqXiPuqzlxT2d4VTPWO/3r+bkNfJW2YjrKCZ0ctO7gYcvHXDhj1g7bPRoIOABnfHWq27K19NZLbqnXU0kVBFMJqa1UrxE4FpBzJJjJAONgPNdJXXhleL/AGJ1gua1wNQ5zXPkGHsDfxeo33I8lX/DfhTJwwrLvXm9suM9zaGukfE6IhjSScZJ3ySqbkVbVtPDSWCnLnuCfUk+R6ztW7EHGP3qTVFsWs4QcJqHDWz0l0bca6tqbhIWk1DmFlO3G3dtI3LycAkno3bw3rQrzxPslpraC0VtJNJNWxSysqHGFzWxFhPcloOS7GOv61z5qO0C83gWKGlfS3OHT5ZWxPilc5rGHAOHA7jJHUeWPFdIaD0nQ6J0rR6eoJpZ4KUS4lm/C5znFxOB7z8FO2o2jL1IxjU4yhJqXmv8AhVHaCuGorLxAvkrqNjqO5xiqpjPIJGiVu5fGQ7IIcRlp8XFdqVmo7dXaJp9QRS5pJqJk4cB0DXFw+6kl00VHqXh1RaJu9TJQQ0IhipqiFs5lZEzDWuDi4dMDbuKjlp0R2k7JbqO0W7Vcb7bSxiCCaW2Ue0GNGQNpS4bZO53C09VsMKKZRxhW5JJtqzb7W9Wh1LoLtKV/2jkXOkY1upKCmjoa2R3LFUBuGMcOrXD6p92Oo8bv0KeHVLDi68atqpwJH0dOWueTu0uc45I9eNveoXoPssUNiuDLhd7v8AhB0UjZYqCKANj5wchxe4lxwenRA9pVuNtssdvjbT01NDBC0YbGxgAH9yzySblLN6Xif9oR5xFH/L8u3qQDhrSxVNLrJjZbhKxr7vVkOdWFrmZlJALQ4E+GOi3P2hK/7fzH2YJV9Vu40tSTrp1zqbBtJ7G6P0Ppu50ttqr1eSJ3VEn0rNMzbuG8mJHujJGBjb4qKauv8AFvgRXWbTtJQ2yS32xrZooaOIsc8kkF7iwOPU7bkfJXhNpCxVFqZa5KKNtNHjugz1C0nA5Sw7joB4Kwf4B+jF0NO22Uwr+7EX2iHEO588YJ2HvzjHkrlTwydlMp1aSO1GWWs2tkfTHRvN0qH0kNXKxsjXSFkzAwPcHEAc3IcYIJ5sHGFX7b9xj1ZqS0y3TWWoKyy0VIKWhtlPW/R2SuDcSSFrAGlxJJHi47khUj2tqVsV50lXtGJp4JopD4lrJMf/Uf0Ks+HHDyfX1ou9wqtQPtFvgmYKeZkRkc7IDnbczdupByTnx8UlbVHgKF0KsMJU0nJ9N/buc36B7Tmq9F1VJQXKaSutjW8po6ouM0A8Y3Hq0eB6e4L3g7btT8adbimoKqRkdW+Vws0T9mVsmCdzvEhrN9i7x6N6la52ZtIVVp1pW3y7UcVdUFjhROnY4RwMLi8/VJG7yQCfeAupra6Gg8E1a5jqy12SpnllZ0MjWPe14+RCi6uMOBVtCGmqpPzFLEXxyzj+WV/wDouvkELPV5Z3fovmmuJqt1htgFE7FXb4o+5jLRjvB5e32qM2v7jHqzUlpluurNQVllr6UM+gmtm+j97JJcBga3LM5/qkYO3mqk7VNi/Cuo9HBjOWptlWajfG3fOKdvPION8Yz47eK7R1aqWfSG4KFr2PaA+N7i0hzSOhB8VFvYp2NJOlqvRqXPBkPJjLT9baR/JVv2Vqj7S+0cP3Yd/bQq/7NjMXfV1L3eeX++Cqoqfivf7dWVLa2tFtpTRW+T0aadkUkob3snM0BwacAdScbZwrp0lxm4fXCe3W2qraq1Xe4tIjpJWFkji3fkLgQM46tJIUdsmtdEwXW/VMmi6mpkuV5mqBL6K5oha1j42hjQXA9GhxIG5UWrNN8PLZR0VRFpS5maq1JTMfGaVzWiEud6wGQTkEDYHO6uMlFmXSpLFFz2Wp5I/4hWaFstxsM8IuNRDNFPJR/Wb3jW4OADkHG4yfeAqa4lcWNOV1j/4fWiU3KWVjmGobE5jIWkH6hJGXE7Z2GO+xOw32bxH0hBxDsdHr2z6jmpbsxt2ttdS8mHt72VjmmKQ4c3IIa7JA2Iz4KptP25FdpzT9RqLVlxbYYbVBNTUlF3xdVvEY7p+SzIxzZyc46+5J9VrjMnZ0LiR4lhf7Mtnz0pODL7bqiLWlhttJLXWGk1E+kZG2nq2taIpcNHK9uWtznI8TjC2dF2qtS6R4o6UrNJav1HX6XopJJLnRiqdI6Jj2lsgbnnbvkYyBjqM5VqXfiVom36RtmpJLhJUQ3mFstFT08PPS1DSM5DH4Axg53P6VXfZu4R1GtL3LqzWjJ3UdHKTSU9TcJTJVyebgDloPh1Pn4BJ4v64wMozlTcoqyf8AkvxW9Mzg1b37LL06/FabaU7PmhNWaQv0VFq6Ge52e+1FBRSVbhK6NmCCWMefJ+E3Ozm9R4LqJ0bI2NjYxrGNAa1rRgADoAFVMnZ41Y7UVPe3X+zQVFOxzG8lO8FpIwS35Tbz3wB1wnxWm+xW18cvVKCTZQ+2tfdvt1X+z9VenP2Y5Jl2n9Nzf8AyR7lf3Y2jqKHhjqSnqoJIJm6gnJjkYWkf0bc9QolxP0BR8T9PQad1NfKq0W+N/eOipw1zpHtILXZcAACDkA5PThbvRllg09oix2GnlfLDQUcVOx7+rhG0DPyxlVpuKNMIqMYqKXZ/cyIiKRYEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREAREQBERAEREB//Z" alt="Mosaic Wellness"/>
+    </div>
+    <div class="login-tagline">Price Management Portal — Internal Use Only</div>
+    <div class="field-group">
+      <label class="field-label">Username</label>
+      <input type="text" id="loginUser" placeholder="Enter your username"/>
+    </div>
+    <div class="field-group">
+      <label class="field-label">Password</label>
+      <input type="password" id="loginPass" placeholder="Enter your password" onkeydown="if(event.key==='Enter') doLogin()"/>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="doLogin()">Sign In →</button>
+    <div class="login-err" id="loginErr">❌ Incorrect username or password</div>
+    <div style="margin-top:18px; padding:14px; background:#f0f5f1; border-radius:10px; font-size:12px; color:#6b8c74; line-height:1.9;">
+      <strong style="color:#1a3d2b">Demo Accounts:</strong><br/>
+      Admin: <code style="color:#2d7a4f">admin</code> / <code style="color:#2d7a4f">admin123</code><br/>
+      Editor: <code style="color:#2d7a4f">editor1</code> / <code style="color:#2d7a4f">edit123</code><br/>
+      Viewer: <code style="color:#2d7a4f">viewer1</code> / <code style="color:#2d7a4f">view123</code>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div id="app">
+  <header>
+    <div class="header-left">
+      <img class="header-logo-img" src="data:image/jpeg;base64,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" alt="Mosaic Wellness"/>
+      <div class="header-divider"></div>
+      <div class="header-title">Price Management Portal</div>
+    </div>
+    <div class="header-right">
+      <div id="syncIndicator" style="display:none; font-size:12px; color:rgba(255,255,255,0.6); align-items:center; gap:8px; flex-direction:column; text-align:right; line-height:1.3;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 2s infinite;"></span>
+          <span id="syncText">Synced</span>
+        </div>
+        <span id="syncCountdown" style="font-size:10px; color:rgba(255,255,255,0.4);">Next sync in 5:00</span>
+      </div>
+      <style>
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+      </style>
+      <div class="user-badge">
+        <div class="role-dot" id="roleDot"></div>
+        <span id="headerUser"></span>
+      </div>
+      <button class="btn btn-sm btn-outline" style="color:#fff;border-color:rgba(255,255,255,0.25)" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <div id="syncBanner">
+    <span>⚡ <b>Google Sheets Mode Active</b> — Data is being loaded from your Google Sheet. Changes made in the sheet will reflect here after refresh.</span>
+    <button class="btn btn-sm btn-primary" onclick="loadFromSheets()">🔄 Refresh Now</button>
+  </div>
+
+  <main>
+    <div class="tabs">
+      <div class="tab active" onclick="switchTab('pricing',this)">📋 Pricing</div>
+      <div class="tab" onclick="switchTab('history',this)">🕐 Change Log</div>
+      <div class="tab admin-tab" onclick="switchTab('admin',this)" style="display:none">⚙️ Admin</div>
+      <div class="tab admin-tab" onclick="switchTab('sheets',this)" style="display:none">🔗 Google Sheets</div>
+    </div>
+
+    <!-- ── PRICING TAB ── -->
+    <div id="tab-pricing">
+      <div class="stats-bar">
+        <div class="stat-card"><div class="stat-val" id="statTotal">0</div><div class="stat-label">Total SKUs</div></div>
+        <div class="stat-card"><div class="stat-val" id="statBrands">0</div><div class="stat-label">Brands</div></div>
+        <div class="stat-card"><div class="stat-val" id="statToday">0</div><div class="stat-label">Updated Today</div></div>
+        <div class="stat-card"><div class="stat-val" id="statChanges">0</div><div class="stat-label">Total Price Changes</div></div>
+      </div>
+      <div class="toolbar">
+        <div class="search-wrap">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="searchBox" placeholder="Search SKU code or product name..." oninput="renderTable()"/>
+        </div>
+        <select id="filterBrand" onchange="renderTable()" style="width:190px; background:#fff;">
+          <option value="">All Brands</option>
+        </select>
+        <button class="btn btn-sm btn-outline" onclick="exportCSV()">📥 Export to Excel</button>
+        <button class="btn btn-sm btn-primary editor-btn" onclick="openAddModal()" style="display:none">+ Add SKU</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>SKU Code</th>
+              <th>Product Name</th>
+              <th>Brand</th>
+              <th>MRP (₹)</th>
+              <th>ASP (₹)</th>
+              <th>Last Updated</th>
+              <th>Updated By</th>
+              <th class="editor-col" style="display:none">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── HISTORY TAB ── -->
+    <div id="tab-history" style="display:none">
+      <div style="margin-bottom:16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <div class="search-wrap" style="max-width:300px">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="historySearch" placeholder="Search by SKU or name..." oninput="renderHistory()"/>
+        </div>
+        <select id="historyBrand" onchange="renderHistory()" style="width:180px; background:#fff;">
+          <option value="">All Brands</option>
+        </select>
+        <select id="historyField" onchange="renderHistory()" style="width:140px; background:#fff;">
+          <option value="">MRP & ASP</option>
+          <option value="MRP">MRP only</option>
+          <option value="ASP">ASP only</option>
+        </select>
+      </div>
+      <div id="historyContainer"></div>
+    </div>
+
+    <!-- ── ADMIN TAB ── -->
+    <div id="tab-admin" style="display:none">
+      <div class="notice">⚠️ Admin-only section. Be careful — changes here affect all users.</div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; align-items:start;">
+        <div>
+          <div class="section-title">👥 Users</div>
+          <div class="users-list" id="usersList"></div>
+          <button class="btn btn-sm btn-primary" style="margin-top:12px; width:100%; justify-content:center" onclick="openAddUserModal()">+ Add User</button>
+        </div>
+        <div>
+          <div class="section-title">🏷️ Manage Brands</div>
+          <div class="field-group" style="display:flex;gap:8px">
+            <input type="text" id="newBrand" placeholder="e.g. Man Matters"/>
+            <button class="btn btn-sm btn-primary" onclick="addBrand()">Add</button>
+          </div>
+          <div id="brandList" style="margin-top:8px; display:flex; flex-wrap:wrap; gap:6px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── GOOGLE SHEETS TAB ── -->
+    <div id="tab-sheets" style="display:none">
+      <div style="max-width:720px">
+        <div class="section-title">🔗 Google Sheets Backend</div>
+        <p style="color:var(--muted); margin-bottom:20px; line-height:1.7;">Connect your portal to a Google Sheet so that pricing data can be managed from the sheet and reflected here. Follow the steps below to set it up.</p>
+
+        <div class="sync-card" style="margin-bottom:16px">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <strong style="font-size:14px">Connection Status</strong>
+            <span class="sync-status" id="sheetStatus" style="background:#fee2e2;color:#991b1b">⛔ Not Connected</span>
+          </div>
+          <div class="field-group">
+            <label class="field-label">Google Sheet Web App URL</label>
+            <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" oninput="saveSheetUrl()"/>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="loadFromSheets()">🔄 Test & Sync Now</button>
+            <button class="btn btn-outline btn-sm" onclick="clearSheetUrl()">✕ Disconnect</button>
+          </div>
+          <div id="sheetMsg" style="margin-top:12px; font-size:12.5px; color:var(--muted); line-height:1.7;"></div>
+        </div>
+
+        <!-- Alternative: Published CSV import -->
+        <div class="sync-card" id="altImport" style="display:none; margin-bottom:16px; border:2px solid var(--accent);">
+          <div style="font-size:14px; font-weight:700; margin-bottom:10px; color:var(--accent);">📂 Alternative: Import via Published Sheet URL</div>
+          <p style="font-size:12.5px; color:var(--muted); margin-bottom:14px; line-height:1.6;">
+            Since the Apps Script method is blocked, you can import data directly from your Google Sheet by publishing it.<br/>
+            <b>How:</b> In Google Sheet → File → Share → Publish to web → Choose tab (e.g. SKUs) → CSV → Copy link. Paste below.
+          </p>
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <input type="text" id="csvUrlInput" placeholder="Paste published CSV URL here..." style="flex:1; min-width:200px;"/>
+            <button class="btn btn-primary btn-sm" onclick="importFromCsvUrl()">Import Tab</button>
+          </div>
+          <div id="csvMsg" style="font-size:12.5px; color:var(--muted);"></div>
+          <div style="margin-top:12px; font-size:12px; color:var(--muted);">
+            Import each tab separately (SKUs, PriceHistory, Brands, Users) by changing the tab in the publish URL.
+          </div>
+        </div>
+
+        <div class="sync-card">
+          <div class="section-title" style="font-size:14px; margin-bottom:16px;">📋 Setup Instructions</div>
+          <div style="counter-reset:steps; display:flex; flex-direction:column; gap:14px;">
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <div style="background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">1</div>
+              <div><strong>Create a Google Sheet</strong> with these exact tabs (sheet names):<br/>
+              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:12px;display:inline-block;margin-top:6px">SKUs &nbsp;|&nbsp; Users &nbsp;|&nbsp; Brands &nbsp;|&nbsp; PriceHistory</code></div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <div style="background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">2</div>
+              <div><strong>SKUs tab columns (Row 1 = headers):</strong><br/>
+              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:12px;display:inline-block;margin-top:6px">id | code | name | brand | mrp | asp | updatedAt | updatedBy</code></div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <div style="background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">3</div>
+              <div><strong>PriceHistory tab columns:</strong><br/>
+              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:12px;display:inline-block;margin-top:6px">id | skuCode | skuName | field | oldVal | newVal | reason | by | at</code></div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <div style="background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">4</div>
+              <div><strong>Users tab columns:</strong><br/>
+              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:12px;display:inline-block;margin-top:6px">id | username | password | name | role</code>
+              <br/><span style="font-size:12px;color:var(--muted)">role = admin / editor / viewer</span></div>
+            </div>
+            <div style="display:flex;gap:14px;align-items:flex-start">
+              <div style="background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">5</div>
+              <div><strong>Open Apps Script</strong> (Extensions → Apps Script), paste the script below, and deploy as a Web App (Anyone can access).</div>
+            </div>
+          </div>
+
+          <div style="margin-top:20px">
+            <div style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.06em">Google Apps Script Code (copy & paste this)</div>
+            <div class="script-block" style="background:#1a3d2b; color:#a3e4b8; font-family:'DM Mono',monospace; font-size:11.5px; border-radius:10px; padding:16px; overflow-x:auto; line-height:1.7; white-space:pre">// ⚠️ DELETE everything in Apps Script and paste this FULL script
+// Then: Deploy → New Deployment → Web App → Execute as Me → Anyone
+
+function doGet(e) {
+  var ss       = SpreadsheetApp.getActiveSpreadsheet();
+  var action   = e.parameter.action;
+  var callback = e.parameter.callback;
+  var result;
+
+  try {
+    if (action === 'read') {
+      var tab = e.parameter.tab;
+      var s   = ss.getSheetByName(tab);
+      if (!s) {
+        result = {ok: false, error: 'Tab not found: ' + tab};
+      } else {
+        var rows = s.getDataRange().getValues();
+        if (rows.length < 2) {
+          result = {ok: true, data: []};
+        } else {
+          var keys = rows[0];
+          var data = rows.slice(1).map(function(r) {
+            var obj = {};
+            keys.forEach(function(k, i) {
+              obj[String(k)] = String(r[i] || '');
+            });
+            return obj;
+          });
+          result = {ok: true, data: data};
+        }
+      }
+    } else if (action === 'write') {
+      var tab  = e.parameter.tab;
+      var b64  = decodeURIComponent(e.parameter.data || '');
+      var json = decodeURIComponent(escape(atob(b64)));
+      var rows = JSON.parse(json);
+      var s    = ss.getSheetByName(tab);
+      if (!s) {
+        result = {ok: false, error: 'Tab not found'};
+      } else {
+        var lastRow = s.getLastRow();
+        if (lastRow > 1) s.deleteRows(2, lastRow - 1);
+        if (rows.length > 0) {
+          var keys = s.getRange(1,1,1,s.getLastColumn()).getValues()[0];
+          var data = rows.map(function(r) {
+            return keys.map(function(k) {
+              return r[String(k)] !== undefined ? r[String(k)] : '';
+            });
+          });
+          s.getRange(2, 1, data.length, data[0].length).setValues(data);
+        }
+        result = {ok: true};
+      }
+    } else {
+      result = {ok: false, error: 'Unknown action'};
+    }
+  } catch(err) {
+    result = {ok: false, error: err.toString()};
+  }
+
+  var output = callback
+    ? callback + '(' + JSON.stringify(result) + ')'
+    : JSON.stringify(result);
+
+  return ContentService
+    .createTextOutput(output)
+    .setMimeType(callback
+      ? ContentService.MimeType.JAVASCRIPT
+      : ContentService.MimeType.JSON);
+}</div>
+            <button class="btn btn-sm btn-outline" style="margin-top:8px" onclick="copyScript()">📋 Copy Script</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ── ADD/EDIT SKU MODAL ── -->
+<div class="modal-overlay" id="skuModal">
+  <div class="modal">
+    <h2 id="skuModalTitle">Add New SKU</h2>
+    <div id="priceChangeNote" class="price-change-note" style="display:none"></div>
+    <div class="form-grid">
+      <div class="field-group">
+        <label class="field-label">SKU Code *</label>
+        <input type="text" id="fSkuCode" placeholder="e.g. MM-001"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Product Name *</label>
+        <input type="text" id="fName" placeholder="Product name"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Brand</label>
+        <select id="fBrand"></select>
+      </div>
+      <div class="field-group" style="display:flex;flex-direction:column;justify-content:flex-end">
+        <!-- spacer -->
+      </div>
+      <div class="field-group">
+        <label class="field-label">MRP (₹) *</label>
+        <input type="number" id="fMrp" placeholder="0.00" min="0" step="0.01" oninput="checkPriceChange()"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">ASP (₹) *</label>
+        <input type="number" id="fAsp" placeholder="0.00" min="0" step="0.01" oninput="checkPriceChange()"/>
+      </div>
+      <div class="field-group full">
+        <label class="field-label">Reason for Price Change</label>
+        <input type="text" id="fReason" placeholder="e.g. Competitor pricing, seasonal offer, cost revision..."/>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('skuModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSku()">Save SKU</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADD USER MODAL ── -->
+<div class="modal-overlay" id="userModal">
+  <div class="modal" style="width:440px">
+    <h2>Add User</h2>
+    <div class="form-grid">
+      <div class="field-group full">
+        <label class="field-label">Full Name</label>
+        <input type="text" id="uName" placeholder="Full name"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Username *</label>
+        <input type="text" id="uUsername" placeholder="login username"/>
+      </div>
+      <div class="field-group">
+        <label class="field-label">Password *</label>
+        <input type="password" id="uPass" placeholder="password"/>
+      </div>
+      <div class="field-group full">
+        <label class="field-label">Role</label>
+        <select id="uRole">
+          <option value="viewer">Viewer — Read only, no edits</option>
+          <option value="editor">Editor — Can update MRP &amp; ASP</option>
+          <option value="admin">Admin — Full access</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('userModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUser()">Add User</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════
+const S = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k)); } catch(e){ return null; } },
+  set: (k,v) => localStorage.setItem(k, JSON.stringify(v)),
+};
+
+function initData() {
+  if (!S.get('mw_users')) S.set('mw_users', [
+    { id:'u1', username:'admin',   password:'admin123', name:'Admin User',   role:'admin'  },
+    { id:'u2', username:'editor1', password:'edit123',  name:'Pricing Team', role:'editor' },
+    { id:'u3', username:'viewer1', password:'view123',  name:'Sales Team',   role:'viewer' },
+  ]);
+  if (!S.get('mw_brands')) S.set('mw_brands', ['Man Matters','Be Bodywise','Little Joys']);
+  if (!S.get('mw_skus')) S.set('mw_skus', [
+    { id:'s1', code:'MM-001', name:'Hair Growth Serum 50ml', brand:'Man Matters',  mrp:899,  asp:749,  updatedAt:new Date().toISOString(), updatedBy:'admin' },
+    { id:'s2', code:'BB-001', name:'Glow Vitamin C Face Wash', brand:'Be Bodywise', mrp:399,  asp:319,  updatedAt:new Date().toISOString(), updatedBy:'admin' },
+    { id:'s3', code:'LJ-001', name:'Baby Sleep Drops 30ml',   brand:'Little Joys', mrp:549,  asp:449,  updatedAt:new Date(Date.now()-86400000).toISOString(), updatedBy:'admin' },
+  ]);
+  if (!S.get('mw_history')) S.set('mw_history', [
+    { id:'h1', skuCode:'MM-001', skuName:'Hair Growth Serum 50ml', field:'MRP', oldVal:999,  newVal:899,  reason:'Competitive pricing adjustment', by:'admin', at:new Date().toISOString() },
+    { id:'h2', skuCode:'MM-001', skuName:'Hair Growth Serum 50ml', field:'ASP', oldVal:849,  newVal:749,  reason:'Competitive pricing adjustment', by:'admin', at:new Date().toISOString() },
+  ]);
+}
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+let currentUser = null;
+
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  const users = S.get('mw_users') || [];
+  const found = users.find(x => x.username === u && x.password === p);
+  if (!found) { document.getElementById('loginErr').style.display='block'; return; }
+  currentUser = found;
+  document.getElementById('loginErr').style.display='none';
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('headerUser').textContent = found.name;
+  document.getElementById('roleDot').className = 'role-dot ' + found.role;
+  applyRoleUI();
+  refreshAll();
+  checkSheetUrl();
+}
+
+function applyRoleUI() {
+  const isEditor = currentUser.role === 'editor' || currentUser.role === 'admin';
+  const isAdmin  = currentUser.role === 'admin';
+  document.querySelectorAll('.editor-btn').forEach(el => el.style.display = isEditor ? '' : 'none');
+  document.querySelectorAll('.editor-col').forEach(el => el.style.display = isEditor ? '' : 'none');
+  document.querySelectorAll('.admin-tab').forEach(el => el.style.display = isAdmin  ? '' : 'none');
+}
+
+function doLogout() {
+  currentUser = null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+}
+
+// ═══════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  ['pricing','history','admin','sheets'].forEach(t => {
+    document.getElementById('tab-'+t).style.display = t===tab ? '' : 'none';
+  });
+  if (tab==='history') renderHistory();
+  if (tab==='admin')   renderAdmin();
+}
+
+// ═══════════════════════════════════════════════
+// PRICING TABLE
+// ═══════════════════════════════════════════════
+function refreshAll() {
+  updateStats();
+  populateBrandFilters();
+  renderTable();
+}
+
+function updateStats() {
+  const skus    = S.get('mw_skus') || [];
+  const history = S.get('mw_history') || [];
+  const today   = new Date().toDateString();
+  document.getElementById('statTotal').textContent   = skus.length;
+  document.getElementById('statBrands').textContent  = [...new Set(skus.map(s=>s.brand).filter(Boolean))].length;
+  document.getElementById('statToday').textContent   = skus.filter(s=>new Date(s.updatedAt).toDateString()===today).length;
+  document.getElementById('statChanges').textContent = history.length;
+}
+
+function populateBrandFilters() {
+  const brands = S.get('mw_brands') || [];
+  const opts = '<option value="">All Brands</option>' + brands.map(b=>`<option value="${b}">${b}</option>`).join('');
+  ['filterBrand','historyBrand'].forEach(id => { const el=document.getElementById(id); if(el){const v=el.value;el.innerHTML=opts;el.value=v;} });
+}
+
+function renderTable() {
+  const skus   = S.get('mw_skus') || [];
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const brand  = document.getElementById('filterBrand').value;
+  const isEditor = currentUser && (currentUser.role==='editor'||currentUser.role==='admin');
+  const today  = new Date().toDateString();
+
+  const filtered = skus.filter(s =>
+    (!search || s.code.toLowerCase().includes(search) || s.name.toLowerCase().includes(search)) &&
+    (!brand  || s.brand === brand)
+  );
+
+  const tbody = document.getElementById('tableBody');
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">No SKUs found. ${isEditor?'Click "+ Add SKU" to add one.':''}</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map(s => {
+    const changedToday = new Date(s.updatedAt).toDateString() === today;
+    const d = new Date(s.updatedAt);
+    const ds = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    const ts = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+    return `<tr>
+      <td><span class="sku-code">${s.code}</span></td>
+      <td>${s.name}${changedToday?'<span class="updated-badge">Updated Today</span>':''}</td>
+      <td>${s.brand?`<span class="brand-tag">${s.brand}</span>`:'—'}</td>
+      <td><span class="price-val mrp">₹${Number(s.mrp).toLocaleString('en-IN')}</span></td>
+      <td><span class="price-val asp">₹${Number(s.asp).toLocaleString('en-IN')}</span></td>
+      <td style="font-size:12px;color:var(--muted)">${ds}<br/>${ts}</td>
+      <td style="font-size:12px;color:var(--muted)">${s.updatedBy}</td>
+      ${isEditor
+        ? `<td style="white-space:nowrap">
+            <button class="btn btn-sm btn-outline" onclick="openEditModal('${s.id}')">✏️ Edit</button>
+            ${currentUser.role==='admin'?`<button class="btn btn-sm btn-danger" style="margin-left:6px" onclick="deleteSku('${s.id}')">🗑</button>`:''}
+           </td>`
+        : '<td></td>'
+      }
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// SKU MODAL
+// ═══════════════════════════════════════════════
+let editingSkuId = null, editingSku = null;
+
+function populateModalBrands(sel='') {
+  const brands = S.get('mw_brands') || [];
+  document.getElementById('fBrand').innerHTML = '<option value="">— Select Brand —</option>' + brands.map(b=>`<option value="${b}" ${b===sel?'selected':''}>${b}</option>`).join('');
+}
+
+function openAddModal() {
+  editingSkuId = null; editingSku = null;
+  document.getElementById('skuModalTitle').textContent = 'Add New SKU';
+  ['fSkuCode','fName','fMrp','fAsp','fReason'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('priceChangeNote').style.display='none';
+  populateModalBrands();
+  document.getElementById('skuModal').classList.add('open');
+}
+
+function openEditModal(id) {
+  const sku = (S.get('mw_skus')||[]).find(s=>s.id===id);
+  if (!sku) return;
+  editingSkuId = id; editingSku = sku;
+  document.getElementById('skuModalTitle').textContent = 'Edit Prices — ' + sku.code;
+  document.getElementById('fSkuCode').value = sku.code;
+  document.getElementById('fName').value = sku.name;
+  document.getElementById('fMrp').value = sku.mrp;
+  document.getElementById('fAsp').value = sku.asp;
+  document.getElementById('fReason').value = '';
+  document.getElementById('priceChangeNote').style.display='block';
+  document.getElementById('priceChangeNote').innerHTML =
+    `Current prices → MRP: <strong>₹${Number(sku.mrp).toLocaleString('en-IN')}</strong> &nbsp;|&nbsp; ASP: <strong>₹${Number(sku.asp).toLocaleString('en-IN')}</strong><br/>
+     <span style="font-size:12px;opacity:0.8">Change the values above. A log entry will be created automatically.</span>`;
+  populateModalBrands(sku.brand);
+  document.getElementById('skuModal').classList.add('open');
+}
+
+function checkPriceChange() {
+  if (!editingSku) return;
+  const mrp = parseFloat(document.getElementById('fMrp').value);
+  const asp = parseFloat(document.getElementById('fAsp').value);
+  const note = document.getElementById('priceChangeNote');
+  const parts = [];
+  if (!isNaN(mrp) && mrp !== editingSku.mrp) parts.push(`MRP: ₹${editingSku.mrp} → ₹${mrp}`);
+  if (!isNaN(asp) && asp !== editingSku.asp) parts.push(`ASP: ₹${editingSku.asp} → ₹${asp}`);
+  if (parts.length) {
+    note.innerHTML = `⚡ Price change detected: <strong>${parts.join(' &nbsp;|&nbsp; ')}</strong><br/><span style="font-size:12px;opacity:0.8">This will be logged in Change History.</span>`;
+    note.style.display='block';
+  } else if (editingSku) {
+    note.innerHTML = `Current prices → MRP: <strong>₹${Number(editingSku.mrp).toLocaleString('en-IN')}</strong> &nbsp;|&nbsp; ASP: <strong>₹${Number(editingSku.asp).toLocaleString('en-IN')}</strong>`;
+  }
+}
+
+function saveSku() {
+  const code   = document.getElementById('fSkuCode').value.trim();
+  const name   = document.getElementById('fName').value.trim();
+  const mrp    = parseFloat(document.getElementById('fMrp').value);
+  const asp    = parseFloat(document.getElementById('fAsp').value);
+  const brand  = document.getElementById('fBrand').value;
+  const reason = document.getElementById('fReason').value.trim();
+
+  if (!code||!name||isNaN(mrp)||isNaN(asp)) { alert('Please fill SKU Code, Name, MRP and ASP.'); return; }
+  if (asp > mrp) { alert('ASP cannot be greater than MRP.'); return; }
+
+  let skus    = S.get('mw_skus')    || [];
+  let history = S.get('mw_history') || [];
+  const now   = new Date().toISOString();
+
+  if (editingSkuId) {
+    const idx = skus.findIndex(s=>s.id===editingSkuId);
+    if (idx > -1) {
+      const old = skus[idx];
+      // Log MRP change
+      if (old.mrp !== mrp) history.unshift({ id:'h'+Date.now()+'mrp', skuCode:old.code, skuName:name, brand, field:'MRP', oldVal:old.mrp, newVal:mrp, reason:reason||'Manual update', by:currentUser.username, at:now });
+      // Log ASP change
+      if (old.asp !== asp) history.unshift({ id:'h'+Date.now()+'asp', skuCode:old.code, skuName:name, brand, field:'ASP', oldVal:old.asp, newVal:asp, reason:reason||'Manual update', by:currentUser.username, at:now });
+      skus[idx] = { ...old, name, brand, mrp, asp, updatedAt:now, updatedBy:currentUser.username };
+    }
+  } else {
+    if (skus.find(s=>s.code===code)) { alert('SKU Code already exists!'); return; }
+    const ns = { id:'s'+Date.now(), code, name, brand, mrp, asp, updatedAt:now, updatedBy:currentUser.username };
+    skus.push(ns);
+    history.unshift({ id:'h'+Date.now(), skuCode:code, skuName:name, brand, field:'CREATED', oldVal:'—', newVal:`MRP ₹${mrp} | ASP ₹${asp}`, reason:reason||'New SKU added', by:currentUser.username, at:now });
+  }
+
+  S.set('mw_skus', skus);
+  S.set('mw_history', history);
+  closeModal('skuModal');
+  refreshAll();
+  syncToSheets();
+}
+
+function deleteSku(id) {
+  if (!confirm('Delete this SKU permanently?')) return;
+  S.set('mw_skus', (S.get('mw_skus')||[]).filter(s=>s.id!==id));
+  refreshAll();
+  syncToSheets();
+}
+
+// ═══════════════════════════════════════════════
+// HISTORY — FULL PRICE LOG PER SKU
+// ═══════════════════════════════════════════════
+function renderHistory() {
+  let history = S.get('mw_history') || [];
+  const search = (document.getElementById('historySearch')?.value||'').toLowerCase();
+  const brand  = document.getElementById('historyBrand')?.value || '';
+  const field  = document.getElementById('historyField')?.value || '';
+
+  if (search) history = history.filter(h => h.skuCode.toLowerCase().includes(search) || h.skuName.toLowerCase().includes(search));
+  if (brand)  history = history.filter(h => h.brand === brand);
+  if (field)  history = history.filter(h => h.field === field);
+
+  const container = document.getElementById('historyContainer');
+  if (!history.length) { container.innerHTML = '<div class="empty-state" style="background:#fff;border:1px solid var(--border);border-radius:14px;padding:60px">No price change history found.</div>'; return; }
+
+  // Group by SKU code
+  const grouped = {};
+  history.forEach(h => {
+    if (!grouped[h.skuCode]) grouped[h.skuCode] = { name: h.skuName, brand: h.brand, entries: [] };
+    grouped[h.skuCode].entries.push(h);
+  });
+
+  container.innerHTML = Object.entries(grouped).map(([code, {name, brand, entries}]) => {
+    const rows = entries.map((h,i) => {
+      const d = new Date(h.at);
+      const ds = d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      const ts = d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+      const isUp = h.field!=='CREATED' && Number(h.newVal)>Number(h.oldVal);
+      const isDown = h.field!=='CREATED' && Number(h.newVal)<Number(h.oldVal);
+
+      return `<div class="timeline-row">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${ds} ${ts}</div>
+        <div>
+          <span style="background:${h.field==='CREATED'?'#dcfce7':h.field==='MRP'?'#e8f4ed':'#f0e8f4'};color:${h.field==='CREATED'?'#166534':'var(--dark)'};border-radius:5px;padding:2px 8px;font-size:11.5px;font-weight:600">${h.field}</span>
+        </div>
+        <div class="h-change">
+          ${h.field!=='CREATED'
+            ? `<span class="price-old">₹${Number(h.oldVal).toLocaleString('en-IN')}</span>
+               <span class="arrow-right">→</span>
+               <span class="${isUp?'price-new-up':'price-new-down'}">₹${Number(h.newVal).toLocaleString('en-IN')} ${isUp?'▲':isDown?'▼':''}</span>`
+            : `<span style="color:var(--accent);font-weight:600">${h.newVal}</span>`
+          }
+        </div>
+        <div style="font-size:12px;color:var(--muted)">by <strong>${h.by}</strong></div>
+        <div style="font-size:12px;color:var(--muted);font-style:italic">${h.reason||'—'}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="sku-timeline-wrap">
+      <div class="sku-timeline-header">
+        <span class="sku-code" style="background:rgba(255,255,255,0.15);color:#fff">${code}</span>
+        <span>${name}</span>
+        ${brand?`<span class="brand-tag" style="background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);margin-left:auto">${brand}</span>`:''}
+      </div>
+      <div class="sku-timeline-body">
+        <div class="timeline-row header-row">
+          <div>Timestamp</div><div>Field</div><div>Price Change</div><div>Changed By</div><div>Reason</div>
+        </div>
+        ${rows}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════
+// ADMIN
+// ═══════════════════════════════════════════════
+function renderAdmin() {
+  const users  = S.get('mw_users') || [];
+  const brands = S.get('mw_brands') || [];
+  document.getElementById('usersList').innerHTML = users.map(u => `
+    <div class="user-row">
+      <div class="user-info">
+        <div class="role-dot ${u.role}"></div>
+        <div>
+          <div style="font-weight:500">${u.name} <span style="font-size:11px;color:var(--muted)">@${u.username}</span></div>
+          <div style="font-size:12px;color:var(--muted);text-transform:capitalize">${u.role}</div>
+        </div>
+      </div>
+      ${u.username!=='admin'
+        ? `<button class="btn btn-sm btn-danger" onclick="deleteUser('${u.id}')">Remove</button>`
+        : '<span style="font-size:11px;color:var(--muted)">Protected</span>'}
+    </div>`).join('');
+
+  document.getElementById('brandList').innerHTML = brands.map(b => `
+    <span style="background:var(--accent-light);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12.5px;display:flex;align-items:center;gap:6px;cursor:pointer" onclick="removeBrand('${b}')">
+      ${b} <span style="color:var(--red);font-size:14px">×</span>
+    </span>`).join('');
+}
+
+function openAddUserModal() { document.getElementById('userModal').classList.add('open'); }
+
+function saveUser() {
+  const name     = document.getElementById('uName').value.trim();
+  const username = document.getElementById('uUsername').value.trim();
+  const password = document.getElementById('uPass').value.trim();
+  const role     = document.getElementById('uRole').value;
+  if (!username||!password) { alert('Username and password required.'); return; }
+  const users = S.get('mw_users') || [];
+  if (users.find(u=>u.username===username)) { alert('Username already exists.'); return; }
+  users.push({ id:'u'+Date.now(), username, password, name:name||username, role });
+  S.set('mw_users', users);
+  closeModal('userModal');
+  renderAdmin();
+}
+
+function deleteUser(id) {
+  if (!confirm('Remove this user?')) return;
+  S.set('mw_users', (S.get('mw_users')||[]).filter(u=>u.id!==id));
+  renderAdmin();
+}
+
+function addBrand() {
+  const v = document.getElementById('newBrand').value.trim();
+  if (!v) return;
+  const brands = S.get('mw_brands') || [];
+  if (!brands.includes(v)) { brands.push(v); S.set('mw_brands', brands); }
+  document.getElementById('newBrand').value='';
+  renderAdmin(); populateBrandFilters();
+}
+
+function removeBrand(b) {
+  if (!confirm(`Remove brand "${b}"?`)) return;
+  S.set('mw_brands', (S.get('mw_brands')||[]).filter(x=>x!==b));
+  renderAdmin(); populateBrandFilters();
+}
+
+// ═══════════════════════════════════════════════
+// GOOGLE SHEETS INTEGRATION — postMessage bridge
+// Works regardless of CORS / redirects
+// ═══════════════════════════════════════════════
+function checkSheetUrl() {
+  const url = S.get('mw_sheet_url');
+  if (url) {
+    document.getElementById('sheetUrl').value = url;
+    document.getElementById('syncBanner').classList.add('visible');
+    document.getElementById('syncIndicator').style.display = 'flex';
+    setSheetStatus('connected', '✅ Connected');
+  }
+}
+function saveSheetUrl() {
+  S.set('mw_sheet_url', document.getElementById('sheetUrl').value.trim());
+}
+function clearSheetUrl() {
+  S.set('mw_sheet_url', null);
+  document.getElementById('sheetUrl').value = '';
+  document.getElementById('syncBanner').classList.remove('visible');
+  document.getElementById('syncIndicator').style.display = 'none';
+  setSheetStatus('disconnected', '⛔ Not Connected');
+  document.getElementById('sheetMsg').textContent = '';
+}
+function setSheetStatus(type, text) {
+  const el = document.getElementById('sheetStatus');
+  el.className = 'sync-status ' + type;
+  el.textContent = text;
+}
+
+// ── postMessage bridge via hidden iframe ──
+// Apps Script serves an HTML page that reads the sheet
+// and sends data back via window.postMessage
+function sheetsBridge(url, action, tab, extraParams) {
+  return new Promise((resolve, reject) => {
+    // Build URL with all params
+    let src = `${url}?action=${action}&tab=${encodeURIComponent(tab)}`;
+    if (extraParams) src += '&' + extraParams;
+
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error('timeout'));
+    }, 25000);
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
+    iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups';
+
+    const onMsg = (e) => {
+      // Accept messages from any google domain
+      if (!e.origin.includes('google') && !e.origin.includes('googleusercontent')) return;
+      try {
+        const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        if (d && d.mwportal) {
+          cleanup();
+          resolve(d);
+        }
+      } catch(err) {}
+    };
+
+    const cleanup = () => {
+      clearTimeout(timer);
+      window.removeEventListener('message', onMsg);
+      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+    };
+
+    window.addEventListener('message', onMsg);
+    document.body.appendChild(iframe);
+    iframe.src = src;
+  });
+}
+
+// ── Alternative: direct fetch with redirect follow ──
+async function fetchSheet(url, tab) {
+  // Apps Script with ?action=read&tab=X returns JSON after redirect
+  // We use fetch with redirect:'follow' — works when portal is on https
+  const res = await fetch(`${url}?action=read&tab=${encodeURIComponent(tab)}&_=${Date.now()}`, {
+    method: 'GET',
+    redirect: 'follow',
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  // Strip JSONP wrapper if present: callback({...}) → {...}
+  const json = text.replace(/^[a-zA-Z_$][a-zA-Z0-9_$]*\s*\(/, '').replace(/\)\s*;?\s*$/, '');
+  return JSON.parse(json);
+}
+
+async function loadFromSheets() {
+  const url = (S.get('mw_sheet_url') || '').trim();
+  if (!url) { alert('Please paste your Google Sheet Web App URL first.'); return; }
+  if (!url.includes('script.google.com')) {
+    setSheetStatus('disconnected', '❌ Bad URL');
+    document.getElementById('sheetMsg').innerHTML = '❌ URL must be from <code>script.google.com</code>';
+    return;
+  }
+
+  setSheetStatus('syncing', '⏳ Connecting...');
+  document.getElementById('sheetMsg').innerHTML = '⏳ Loading data... (first load may take 15–20 seconds)';
+
+  const tabConfig = [
+    { tab: 'SKUs',         store: 'mw_skus',    xform: d => d },
+    { tab: 'PriceHistory', store: 'mw_history',  xform: d => d },
+    { tab: 'Brands',       store: 'mw_brands',   xform: d => d.map(r => r.brand||r.Brand||r.name||r.Name||'').filter(Boolean) },
+    { tab: 'Users',        store: 'mw_users',    xform: d => d },
+  ];
+
+  let loaded = 0, errors = [];
+
+  for (const cfg of tabConfig) {
+    document.getElementById('sheetMsg').innerHTML =
+      `⏳ Loading <b>${cfg.tab}</b>... (${loaded}/${tabConfig.length} done)`;
+    try {
+      const result = await fetchSheet(url, cfg.tab);
+      if (result && result.ok && Array.isArray(result.data)) {
+        const val = cfg.xform(result.data);
+        if (!(cfg.tab === 'Brands' && val.length === 0)) {
+          S.set(cfg.store, val);
+        }
+        loaded++;
+      } else {
+        errors.push(cfg.tab + ': ' + (result?.error || 'empty'));
+      }
+    } catch(e) {
+      errors.push(cfg.tab + ': ' + e.message);
+    }
+  }
+
+  if (loaded === 0) {
+    setSheetStatus('disconnected', '❌ Failed');
+    document.getElementById('sheetMsg').innerHTML = `
+      ❌ <b>Could not connect.</b> The most common cause is that you are opening the portal as a <b>local file</b> (file://) — browsers block cross-origin requests from local files.<br/><br/>
+      <b>✅ Quick fix options:</b><br/>
+      <b>Option A (Easiest):</b> Upload the portal HTML to <b>GitHub Pages</b> (free) and open it from there instead of your desktop.<br/>
+      <b>Option B:</b> Use the <b>Import from Sheet URL</b> method below — paste your sheet's shareable link and we'll parse it directly.<br/><br/>
+      Errors: <code>${errors.join(' | ')}</code>`;
+
+    // Show the alternative import section
+    document.getElementById('altImport').style.display = 'block';
+    return;
+  }
+
+  setSheetStatus('connected', `✅ Synced ${loaded}/4`);
+  document.getElementById('sheetMsg').innerHTML =
+    `✅ <b>Synced ${loaded}/4 tabs</b> at ${new Date().toLocaleTimeString('en-IN')}` +
+    (errors.length ? `<br/>⚠️ Skipped: ${errors.join(', ')}` : '');
+  document.getElementById('syncBanner').classList.add('visible');
+  document.getElementById('syncIndicator').style.display = 'flex';
+  document.getElementById('syncText').textContent = 'Synced';
+  document.getElementById('altImport').style.display = 'none';
+  refreshAll();
+}
+
+async function syncToSheets() {
+  const url = (S.get('mw_sheet_url') || '').trim();
+  if (!url) return;
+  try {
+    const skus    = S.get('mw_skus')    || [];
+    const history = S.get('mw_history') || [];
+    const skuB64  = btoa(unescape(encodeURIComponent(JSON.stringify(skus))));
+    const histB64 = btoa(unescape(encodeURIComponent(JSON.stringify(history))));
+    // fire and forget
+    fetch(`${url}?action=write&tab=SKUs&data=${encodeURIComponent(skuB64)}`).catch(()=>{});
+    fetch(`${url}?action=write&tab=PriceHistory&data=${encodeURIComponent(histB64)}`).catch(()=>{});
+    const el = document.getElementById('syncText');
+    if (el) el.textContent = 'Synced ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  } catch(e) {}
+}
+
+// ── ALTERNATIVE: Import by pasting JSON from sheet URL ──
+// User opens sheet URL in browser, we read the published CSV
+async function importFromCsvUrl() {
+  const csvUrl = document.getElementById('csvUrlInput').value.trim();
+  if (!csvUrl) { alert('Paste your Google Sheet published CSV URL'); return; }
+  document.getElementById('csvMsg').textContent = 'Fetching...';
+  try {
+    const res = await fetch(csvUrl);
+    const text = await res.text();
+    const rows = text.trim().split('\n').map(r => r.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
+    if (rows.length < 2) { document.getElementById('csvMsg').textContent = '❌ Empty sheet or wrong URL'; return; }
+    const keys = rows[0];
+    const data = rows.slice(1).map(r => {
+      const obj = {};
+      keys.forEach((k,i) => obj[k] = r[i]||'');
+      return obj;
+    });
+    // Detect which tab this is by its columns
+    if (keys.includes('code') && keys.includes('mrp')) {
+      S.set('mw_skus', data);
+      document.getElementById('csvMsg').innerHTML = `✅ Imported ${data.length} SKUs!`;
+    } else if (keys.includes('skuCode') && keys.includes('oldVal')) {
+      S.set('mw_history', data);
+      document.getElementById('csvMsg').innerHTML = `✅ Imported ${data.length} history entries!`;
+    } else if (keys.includes('username')) {
+      S.set('mw_users', data);
+      document.getElementById('csvMsg').innerHTML = `✅ Imported ${data.length} users!`;
+    } else if (keys.includes('brand') || keys.length === 1) {
+      S.set('mw_brands', data.map(r => Object.values(r)[0]).filter(Boolean));
+      document.getElementById('csvMsg').innerHTML = `✅ Imported brands!`;
+    } else {
+      document.getElementById('csvMsg').textContent = '❌ Could not detect tab type from columns';
+      return;
+    }
+    refreshAll();
+  } catch(e) {
+    document.getElementById('csvMsg').innerHTML = `❌ Error: ${e.message}. Make sure the sheet is published publicly.`;
+  }
+}
+
+function copyScript() {
+  const el = document.querySelector('#tab-sheets .script-block');
+  const text = el ? el.innerText : '';
+  navigator.clipboard.writeText(text).then(
+    () => alert('✅ Script copied! Now go to Apps Script, DELETE everything, paste this, then create a New Deployment.'),
+    () => { prompt('Copy this script:', text); }
+  );
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT CSV
+// ═══════════════════════════════════════════════
+function exportCSV() {
+  const skus   = S.get('mw_skus') || [];
+  const search = document.getElementById('searchBox').value.toLowerCase();
+  const brand  = document.getElementById('filterBrand').value;
+  const filtered = skus.filter(s =>
+    (!search || s.code.toLowerCase().includes(search) || s.name.toLowerCase().includes(search)) &&
+    (!brand  || s.brand === brand)
+  );
+  const rows = [['SKU Code','Product Name','Brand','MRP (INR)','ASP (INR)','Last Updated','Updated By']];
+  filtered.forEach(s => rows.push([s.code, s.name, s.brand||'', s.mrp, s.asp, new Date(s.updatedAt).toLocaleString('en-IN'), s.updatedBy]));
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download = `mosaic_wellness_prices_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-overlay').forEach(m => {
+  m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
+});
+
+// ═══════════════════════════════════════════════
+// AUTO-REFRESH — every 5 minutes if sheet connected
+// ═══════════════════════════════════════════════
+let autoRefreshInterval = null;
+let countdownInterval   = null;
+let nextSyncIn          = 300; // seconds
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+
+  // Countdown display
+  nextSyncIn = 300;
+  countdownInterval = setInterval(() => {
+    nextSyncIn--;
+    const el = document.getElementById('syncCountdown');
+    if (el) {
+      const m = Math.floor(nextSyncIn / 60);
+      const s = nextSyncIn % 60;
+      el.textContent = `Next sync in ${m}:${String(s).padStart(2,'0')}`;
+    }
+    if (nextSyncIn <= 0) nextSyncIn = 300;
+  }, 1000);
+
+  // Auto-sync every 5 minutes
+  autoRefreshInterval = setInterval(async () => {
+    const url = (S.get('mw_sheet_url') || '').trim();
+    if (!url) return;
+    nextSyncIn = 300;
+    const el = document.getElementById('syncText');
+    if (el) el.textContent = 'Syncing...';
+    await loadFromSheets();
+  }, 5 * 60 * 1000);
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+  if (countdownInterval)   { clearInterval(countdownInterval);   countdownInterval   = null; }
+}
+
+// Kick off auto-refresh after login if sheet is connected
+const _origCheckSheetUrl = checkSheetUrl;
+checkSheetUrl = function() {
+  _origCheckSheetUrl();
+  if (S.get('mw_sheet_url')) startAutoRefresh();
+};
+
+// Also start when sync succeeds inside loadFromSheets
+const _origLoadFromSheets = loadFromSheets;
+loadFromSheets = async function() {
+  await _origLoadFromSheets();
+  if (S.get('mw_sheet_url')) startAutoRefresh();
+};
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+initData();
+</script>
+</body>
+</html>
