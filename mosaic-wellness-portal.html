@@ -236,10 +236,16 @@
       <div class="header-title">Price Management Portal</div>
     </div>
     <div class="header-right">
-      <div id="syncIndicator" style="display:none; font-size:12px; color:rgba(255,255,255,0.6); align-items:center; gap:6px;">
-        <span id="syncDot" style="width:7px;height:7px;border-radius:50%;background:#4ade80;display:inline-block;"></span>
-        <span id="syncText">Synced</span>
+      <div id="syncIndicator" style="display:none; font-size:12px; color:rgba(255,255,255,0.6); align-items:center; gap:8px; flex-direction:column; text-align:right; line-height:1.3;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#4ade80;display:inline-block;animation:pulse 2s infinite;"></span>
+          <span id="syncText">Synced</span>
+        </div>
+        <span id="syncCountdown" style="font-size:10px; color:rgba(255,255,255,0.4);">Next sync in 5:00</span>
       </div>
+      <style>
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+      </style>
       <div class="user-badge">
         <div class="role-dot" id="roleDot"></div>
         <span id="headerUser"></span>
@@ -340,144 +346,106 @@
 
     <!-- ── GOOGLE SHEETS TAB ── -->
     <div id="tab-sheets" style="display:none">
-      <div style="max-width:720px">
+      <div style="max-width:760px">
         <div class="section-title">🔗 Google Sheets Backend</div>
-        <p style="color:var(--muted); margin-bottom:20px; line-height:1.7;">Connect your portal to a Google Sheet so that pricing data can be managed from the sheet and reflected here. Follow the steps below to set it up.</p>
+        <p style="color:var(--muted); margin-bottom:20px; line-height:1.7;">This approach uses <b>Published CSV URLs</b> for reading (works 100%, no CORS issues) and Apps Script for writing back. Setup takes ~5 minutes.</p>
 
+        <!-- STATUS -->
         <div class="sync-card" style="margin-bottom:16px">
-          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
             <strong style="font-size:14px">Connection Status</strong>
             <span class="sync-status" id="sheetStatus" style="background:#fee2e2;color:#991b1b">⛔ Not Connected</span>
           </div>
-          <div class="field-group">
-            <label class="field-label">Google Sheet Web App URL</label>
+
+          <!-- CSV URLs for each tab -->
+          <div style="margin-bottom:14px">
+            <label class="field-label">SKUs Tab — Published CSV URL</label>
+            <input type="text" id="csvSkus" placeholder="https://docs.google.com/spreadsheets/d/.../pub?gid=0&single=true&output=csv" oninput="saveCsvUrls()"/>
+          </div>
+          <div style="margin-bottom:14px">
+            <label class="field-label">PriceHistory Tab — Published CSV URL</label>
+            <input type="text" id="csvHistory" placeholder="https://docs.google.com/spreadsheets/d/.../pub?gid=...&single=true&output=csv" oninput="saveCsvUrls()"/>
+          </div>
+          <div style="margin-bottom:14px">
+            <label class="field-label">Brands Tab — Published CSV URL</label>
+            <input type="text" id="csvBrands" placeholder="https://docs.google.com/spreadsheets/d/.../pub?gid=...&single=true&output=csv" oninput="saveCsvUrls()"/>
+          </div>
+          <div style="margin-bottom:14px">
+            <label class="field-label">Users Tab — Published CSV URL</label>
+            <input type="text" id="csvUsers" placeholder="https://docs.google.com/spreadsheets/d/.../pub?gid=...&single=true&output=csv" oninput="saveCsvUrls()"/>
+          </div>
+          <div style="margin-bottom:14px">
+            <label class="field-label">Apps Script URL (for writing back to sheet)</label>
             <input type="text" id="sheetUrl" placeholder="https://script.google.com/macros/s/YOUR_ID/exec" oninput="saveSheetUrl()"/>
           </div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn btn-primary btn-sm" onclick="loadFromSheets()">🔄 Test & Sync Now</button>
-            <button class="btn btn-outline btn-sm" onclick="clearSheetUrl()">✕ Disconnect</button>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="loadFromSheets()">🔄 Sync from Sheet Now</button>
+            <button class="btn btn-outline btn-sm" onclick="clearAllSheetConfig()">✕ Disconnect All</button>
           </div>
-          <div id="sheetMsg" style="margin-top:12px; font-size:12.5px; color:var(--muted); line-height:1.7;"></div>
+          <div id="sheetMsg" style="margin-top:12px;font-size:12.5px;color:var(--muted);line-height:1.8"></div>
         </div>
 
-        <!-- Alternative: Published CSV import -->
-        <div class="sync-card" id="altImport" style="display:none; margin-bottom:16px; border:2px solid var(--accent);">
-          <div style="font-size:14px; font-weight:700; margin-bottom:10px; color:var(--accent);">📂 Alternative: Import via Published Sheet URL</div>
-          <p style="font-size:12.5px; color:var(--muted); margin-bottom:14px; line-height:1.6;">
-            Since the Apps Script method is blocked, you can import data directly from your Google Sheet by publishing it.<br/>
-            <b>How:</b> In Google Sheet → File → Share → Publish to web → Choose tab (e.g. SKUs) → CSV → Copy link. Paste below.
-          </p>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
-            <input type="text" id="csvUrlInput" placeholder="Paste published CSV URL here..." style="flex:1; min-width:200px;"/>
-            <button class="btn btn-primary btn-sm" onclick="importFromCsvUrl()">Import Tab</button>
-          </div>
-          <div id="csvMsg" style="font-size:12.5px; color:var(--muted);"></div>
-          <div style="margin-top:12px; font-size:12px; color:var(--muted);">
-            Import each tab separately (SKUs, PriceHistory, Brands, Users) by changing the tab in the publish URL.
-          </div>
-        </div>
-
+        <!-- SETUP INSTRUCTIONS -->
         <div class="sync-card">
-          <div class="section-title" style="font-size:14px; margin-bottom:16px;">📋 Setup Instructions</div>
-          <div style="counter-reset:steps; display:flex; flex-direction:column; gap:14px;">
+          <div class="section-title" style="font-size:14px;margin-bottom:16px">📋 How to Set Up (one time only)</div>
+          <div style="display:flex;flex-direction:column;gap:16px">
+
             <div style="display:flex;gap:14px;align-items:flex-start">
               <div style="background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">1</div>
-              <div><strong>Create a Google Sheet</strong> with these exact tabs (sheet names):<br/>
-              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:12px;display:inline-block;margin-top:6px">SKUs &nbsp;|&nbsp; Users &nbsp;|&nbsp; Brands &nbsp;|&nbsp; PriceHistory</code></div>
+              <div><strong>Create Google Sheet with 4 tabs:</strong><br/>
+              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:12px;margin-top:6px;display:inline-block">SKUs | PriceHistory | Brands | Users</code><br/>
+              <span style="font-size:12px;color:var(--muted)">Add these headers in Row 1 of each tab:</span><br/>
+              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:11.5px;margin-top:4px;display:inline-block">SKUs: id, code, name, brand, mrp, asp, updatedAt, updatedBy</code><br/>
+              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:11.5px;margin-top:4px;display:inline-block">PriceHistory: id, skuCode, skuName, brand, field, oldVal, newVal, reason, by, at</code><br/>
+              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:11.5px;margin-top:4px;display:inline-block">Brands: brand</code><br/>
+              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:11.5px;margin-top:4px;display:inline-block">Users: id, username, password, name, role</code>
+              </div>
             </div>
+
             <div style="display:flex;gap:14px;align-items:flex-start">
               <div style="background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">2</div>
-              <div><strong>SKUs tab columns (Row 1 = headers):</strong><br/>
-              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:12px;display:inline-block;margin-top:6px">id | code | name | brand | mrp | asp | updatedAt | updatedBy</code></div>
+              <div><strong>Publish the sheet as CSV</strong> (do this once):<br/>
+              File → <b>Share</b> → <b>Publish to web</b> → for each tab, select the tab name → select <b>CSV</b> → click <b>Publish</b> → copy the URL<br/>
+              <span style="font-size:12px;color:var(--muted)">Do this 4 times (once per tab). Each tab gets a different URL. Paste each URL above.</span>
+              </div>
             </div>
+
             <div style="display:flex;gap:14px;align-items:flex-start">
               <div style="background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">3</div>
-              <div><strong>PriceHistory tab columns:</strong><br/>
-              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:12px;display:inline-block;margin-top:6px">id | skuCode | skuName | field | oldVal | newVal | reason | by | at</code></div>
+              <div><strong>Set up Apps Script</strong> (for writing from portal → sheet):<br/>
+              Extensions → Apps Script → delete everything → paste script below → Save → Deploy → New Deployment → Web App → Anyone → copy URL → paste above.
+              </div>
             </div>
-            <div style="display:flex;gap:14px;align-items:flex-start">
-              <div style="background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">4</div>
-              <div><strong>Users tab columns:</strong><br/>
-              <code style="background:var(--bg);padding:4px 8px;border-radius:5px;font-size:12px;display:inline-block;margin-top:6px">id | username | password | name | role</code>
-              <br/><span style="font-size:12px;color:var(--muted)">role = admin / editor / viewer</span></div>
-            </div>
-            <div style="display:flex;gap:14px;align-items:flex-start">
-              <div style="background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">5</div>
-              <div><strong>Open Apps Script</strong> (Extensions → Apps Script), paste the script below, and deploy as a Web App (Anyone can access).</div>
-            </div>
+
           </div>
 
           <div style="margin-top:20px">
-            <div style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.06em">Google Apps Script Code (copy & paste this)</div>
-            <div class="script-block" style="background:#1a3d2b; color:#a3e4b8; font-family:'DM Mono',monospace; font-size:11.5px; border-radius:10px; padding:16px; overflow-x:auto; line-height:1.7; white-space:pre">// ⚠️ DELETE everything in Apps Script and paste this FULL script
-// Then: Deploy → New Deployment → Web App → Execute as Me → Anyone
-
-function doGet(e) {
-  var ss       = SpreadsheetApp.getActiveSpreadsheet();
-  var action   = e.parameter.action;
+            <div style="font-size:12px;font-weight:600;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.06em">Apps Script Code</div>
+            <div class="script-block" style="background:#1a3d2b;color:#a3e4b8;font-family:'DM Mono',monospace;font-size:11px;border-radius:10px;padding:16px;overflow-x:auto;line-height:1.7;white-space:pre">function doGet(e) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var action = e.parameter.action;
   var callback = e.parameter.callback;
   var result;
-
   try {
-    if (action === 'read') {
-      var tab = e.parameter.tab;
-      var s   = ss.getSheetByName(tab);
-      if (!s) {
-        result = {ok: false, error: 'Tab not found: ' + tab};
-      } else {
-        var rows = s.getDataRange().getValues();
-        if (rows.length < 2) {
-          result = {ok: true, data: []};
-        } else {
-          var keys = rows[0];
-          var data = rows.slice(1).map(function(r) {
-            var obj = {};
-            keys.forEach(function(k, i) {
-              obj[String(k)] = String(r[i] || '');
-            });
-            return obj;
-          });
-          result = {ok: true, data: data};
-        }
-      }
-    } else if (action === 'write') {
-      var tab  = e.parameter.tab;
-      var b64  = decodeURIComponent(e.parameter.data || '');
-      var json = decodeURIComponent(escape(atob(b64)));
-      var rows = JSON.parse(json);
-      var s    = ss.getSheetByName(tab);
-      if (!s) {
-        result = {ok: false, error: 'Tab not found'};
-      } else {
-        var lastRow = s.getLastRow();
-        if (lastRow > 1) s.deleteRows(2, lastRow - 1);
-        if (rows.length > 0) {
-          var keys = s.getRange(1,1,1,s.getLastColumn()).getValues()[0];
-          var data = rows.map(function(r) {
-            return keys.map(function(k) {
-              return r[String(k)] !== undefined ? r[String(k)] : '';
-            });
-          });
-          s.getRange(2, 1, data.length, data[0].length).setValues(data);
-        }
-        result = {ok: true};
-      }
+    if (action === 'clear') {
+      var s = ss.getSheetByName(e.parameter.tab);
+      if (s && s.getLastRow() > 1) s.deleteRows(2, s.getLastRow() - 1);
+      result = {ok: true};
+    } else if (action === 'append') {
+      var s = ss.getSheetByName(e.parameter.tab);
+      var rowObj = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(e.parameter.row)))));
+      var keys = s.getRange(1,1,1,s.getLastColumn()).getValues()[0];
+      s.appendRow(keys.map(function(k){ return rowObj[String(k)] || ''; }));
+      result = {ok: true};
     } else {
-      result = {ok: false, error: 'Unknown action'};
+      result = {ok: false, error: 'unknown action'};
     }
-  } catch(err) {
-    result = {ok: false, error: err.toString()};
-  }
-
-  var output = callback
-    ? callback + '(' + JSON.stringify(result) + ')'
-    : JSON.stringify(result);
-
-  return ContentService
-    .createTextOutput(output)
-    .setMimeType(callback
-      ? ContentService.MimeType.JAVASCRIPT
-      : ContentService.MimeType.JSON);
+  } catch(err) { result = {ok: false, error: err.toString()}; }
+  var out = callback ? callback+'('+JSON.stringify(result)+')' : JSON.stringify(result);
+  return ContentService.createTextOutput(out).setMimeType(
+    callback ? ContentService.MimeType.JAVASCRIPT : ContentService.MimeType.JSON
+  );
 }</div>
             <button class="btn btn-sm btn-outline" style="margin-top:8px" onclick="copyScript()">📋 Copy Script</button>
           </div>
@@ -934,211 +902,144 @@ function removeBrand(b) {
 }
 
 // ═══════════════════════════════════════════════
-// GOOGLE SHEETS INTEGRATION — postMessage bridge
-// Works regardless of CORS / redirects
+// GOOGLE SHEETS — CSV read + JSONP write
 // ═══════════════════════════════════════════════
+
+function saveCsvUrls() {
+  S.set('mw_csv_skus',    (document.getElementById('csvSkus')||{}).value||'');
+  S.set('mw_csv_history', (document.getElementById('csvHistory')||{}).value||'');
+  S.set('mw_csv_brands',  (document.getElementById('csvBrands')||{}).value||'');
+  S.set('mw_csv_users',   (document.getElementById('csvUsers')||{}).value||'');
+}
+
+function saveSheetUrl() {
+  S.set('mw_sheet_url', (document.getElementById('sheetUrl')||{}).value||'');
+}
+
 function checkSheetUrl() {
-  const url = S.get('mw_sheet_url');
-  if (url) {
-    document.getElementById('sheetUrl').value = url;
+  const fill = (id, key) => { const el=document.getElementById(id); if(el && S.get(key)) el.value=S.get(key); };
+  fill('sheetUrl','mw_sheet_url'); fill('csvSkus','mw_csv_skus');
+  fill('csvHistory','mw_csv_history'); fill('csvBrands','mw_csv_brands'); fill('csvUsers','mw_csv_users');
+  if (S.get('mw_csv_skus')) {
     document.getElementById('syncBanner').classList.add('visible');
-    document.getElementById('syncIndicator').style.display = 'flex';
-    setSheetStatus('connected', '✅ Connected');
+    document.getElementById('syncIndicator').style.display='flex';
+    setSheetStatus('connected','✅ Configured');
+    startAutoRefresh();
   }
 }
-function saveSheetUrl() {
-  S.set('mw_sheet_url', document.getElementById('sheetUrl').value.trim());
-}
-function clearSheetUrl() {
-  S.set('mw_sheet_url', null);
-  document.getElementById('sheetUrl').value = '';
+
+function clearAllSheetConfig() {
+  ['mw_sheet_url','mw_csv_skus','mw_csv_history','mw_csv_brands','mw_csv_users'].forEach(k=>S.set(k,null));
+  ['sheetUrl','csvSkus','csvHistory','csvBrands','csvUsers'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   document.getElementById('syncBanner').classList.remove('visible');
-  document.getElementById('syncIndicator').style.display = 'none';
-  setSheetStatus('disconnected', '⛔ Not Connected');
-  document.getElementById('sheetMsg').textContent = '';
+  document.getElementById('syncIndicator').style.display='none';
+  setSheetStatus('disconnected','⛔ Not Connected');
+  document.getElementById('sheetMsg').textContent='';
+  stopAutoRefresh();
 }
+
 function setSheetStatus(type, text) {
-  const el = document.getElementById('sheetStatus');
-  el.className = 'sync-status ' + type;
-  el.textContent = text;
+  const el=document.getElementById('sheetStatus'); el.className='sync-status '+type; el.textContent=text;
 }
 
-// ── postMessage bridge via hidden iframe ──
-// Apps Script serves an HTML page that reads the sheet
-// and sends data back via window.postMessage
-function sheetsBridge(url, action, tab, extraParams) {
-  return new Promise((resolve, reject) => {
-    // Build URL with all params
-    let src = `${url}?action=${action}&tab=${encodeURIComponent(tab)}`;
-    if (extraParams) src += '&' + extraParams;
-
-    const timer = setTimeout(() => {
-      cleanup();
-      reject(new Error('timeout'));
-    }, 25000);
-
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;pointer-events:none;';
-    iframe.sandbox = 'allow-scripts allow-same-origin allow-forms allow-popups';
-
-    const onMsg = (e) => {
-      // Accept messages from any google domain
-      if (!e.origin.includes('google') && !e.origin.includes('googleusercontent')) return;
-      try {
-        const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        if (d && d.mwportal) {
-          cleanup();
-          resolve(d);
-        }
-      } catch(err) {}
-    };
-
-    const cleanup = () => {
-      clearTimeout(timer);
-      window.removeEventListener('message', onMsg);
-      if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-    };
-
-    window.addEventListener('message', onMsg);
-    document.body.appendChild(iframe);
-    iframe.src = src;
-  });
+function parseCsv(text) {
+  const lines=text.trim().split('\n'); if(lines.length<2) return [];
+  const parseRow=line=>{
+    const result=[];let cur='';let inQ=false;
+    for(let i=0;i<line.length;i++){
+      const c=line[i];
+      if(c==='"'){inQ=!inQ;}
+      else if(c===','&&!inQ){result.push(cur.trim());cur='';}
+      else{cur+=c;}
+    }
+    result.push(cur.trim()); return result;
+  };
+  const keys=parseRow(lines[0]);
+  return lines.slice(1).map(line=>{
+    const vals=parseRow(line);const obj={};
+    keys.forEach((k,i)=>obj[k.trim()]=(vals[i]||'').trim());
+    return obj;
+  }).filter(r=>Object.values(r).some(v=>v!==''));
 }
 
-// ── Alternative: direct fetch with redirect follow ──
-async function fetchSheet(url, tab) {
-  // Apps Script with ?action=read&tab=X returns JSON after redirect
-  // We use fetch with redirect:'follow' — works when portal is on https
-  const res = await fetch(`${url}?action=read&tab=${encodeURIComponent(tab)}&_=${Date.now()}`, {
-    method: 'GET',
-    redirect: 'follow',
-  });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  const text = await res.text();
-  // Strip JSONP wrapper if present: callback({...}) → {...}
-  const json = text.replace(/^[a-zA-Z_$][a-zA-Z0-9_$]*\s*\(/, '').replace(/\)\s*;?\s*$/, '');
-  return JSON.parse(json);
+async function fetchCsv(url) {
+  if(!url) return null;
+  const sep=url.includes('?')?'&':'?';
+  const res=await fetch(url+sep+'_='+Date.now());
+  if(!res.ok) throw new Error('HTTP '+res.status);
+  return parseCsv(await res.text());
 }
 
 async function loadFromSheets() {
-  const url = (S.get('mw_sheet_url') || '').trim();
-  if (!url) { alert('Please paste your Google Sheet Web App URL first.'); return; }
-  if (!url.includes('script.google.com')) {
-    setSheetStatus('disconnected', '❌ Bad URL');
-    document.getElementById('sheetMsg').innerHTML = '❌ URL must be from <code>script.google.com</code>';
+  const urls={
+    skus:   S.get('mw_csv_skus')||'',
+    history:S.get('mw_csv_history')||'',
+    brands: S.get('mw_csv_brands')||'',
+    users:  S.get('mw_csv_users')||'',
+  };
+  if(!urls.skus){
+    setSheetStatus('disconnected','❌ No URL');
+    document.getElementById('sheetMsg').innerHTML='❌ Please paste at least the <b>SKUs CSV URL</b>.';
     return;
   }
-
-  setSheetStatus('syncing', '⏳ Connecting...');
-  document.getElementById('sheetMsg').innerHTML = '⏳ Loading data... (first load may take 15–20 seconds)';
-
-  const tabConfig = [
-    { tab: 'SKUs',         store: 'mw_skus',    xform: d => d },
-    { tab: 'PriceHistory', store: 'mw_history',  xform: d => d },
-    { tab: 'Brands',       store: 'mw_brands',   xform: d => d.map(r => r.brand||r.Brand||r.name||r.Name||'').filter(Boolean) },
-    { tab: 'Users',        store: 'mw_users',    xform: d => d },
+  setSheetStatus('syncing','⏳ Loading...');
+  document.getElementById('sheetMsg').innerHTML='⏳ Fetching data from Google Sheets...';
+  let loaded=0,errors=[];
+  const tries=[
+    {url:urls.skus,   store:'mw_skus',   label:'SKUs',   xform:d=>d},
+    {url:urls.history,store:'mw_history',label:'History', xform:d=>d},
+    {url:urls.brands, store:'mw_brands', label:'Brands',  xform:d=>d.map(r=>r.brand||r.Brand||Object.values(r)[0]||'').filter(Boolean)},
+    {url:urls.users,  store:'mw_users',  label:'Users',   xform:d=>d},
   ];
-
-  let loaded = 0, errors = [];
-
-  for (const cfg of tabConfig) {
-    document.getElementById('sheetMsg').innerHTML =
-      `⏳ Loading <b>${cfg.tab}</b>... (${loaded}/${tabConfig.length} done)`;
-    try {
-      const result = await fetchSheet(url, cfg.tab);
-      if (result && result.ok && Array.isArray(result.data)) {
-        const val = cfg.xform(result.data);
-        if (!(cfg.tab === 'Brands' && val.length === 0)) {
-          S.set(cfg.store, val);
-        }
-        loaded++;
-      } else {
-        errors.push(cfg.tab + ': ' + (result?.error || 'empty'));
-      }
-    } catch(e) {
-      errors.push(cfg.tab + ': ' + e.message);
-    }
+  for(const t of tries){
+    if(!t.url) continue;
+    document.getElementById('sheetMsg').innerHTML=`⏳ Loading ${t.label}...`;
+    try{
+      const d=await fetchCsv(t.url);
+      if(d&&d.length>=0){const v=t.xform(d);if(!(t.label==='Brands'&&v.length===0)){S.set(t.store,v);}loaded++;}
+    }catch(e){errors.push(t.label+': '+e.message);}
   }
-
-  if (loaded === 0) {
-    setSheetStatus('disconnected', '❌ Failed');
-    document.getElementById('sheetMsg').innerHTML = `
-      ❌ <b>Could not connect.</b> The most common cause is that you are opening the portal as a <b>local file</b> (file://) — browsers block cross-origin requests from local files.<br/><br/>
-      <b>✅ Quick fix options:</b><br/>
-      <b>Option A (Easiest):</b> Upload the portal HTML to <b>GitHub Pages</b> (free) and open it from there instead of your desktop.<br/>
-      <b>Option B:</b> Use the <b>Import from Sheet URL</b> method below — paste your sheet's shareable link and we'll parse it directly.<br/><br/>
-      Errors: <code>${errors.join(' | ')}</code>`;
-
-    // Show the alternative import section
-    document.getElementById('altImport').style.display = 'block';
+  if(loaded===0){
+    setSheetStatus('disconnected','❌ Failed');
+    document.getElementById('sheetMsg').innerHTML=`❌ Could not load. Make sure you published the sheet (File → Share → Publish to web → CSV).<br/>Errors: <code>${errors.join(' | ')}</code>`;
     return;
   }
-
-  setSheetStatus('connected', `✅ Synced ${loaded}/4`);
-  document.getElementById('sheetMsg').innerHTML =
-    `✅ <b>Synced ${loaded}/4 tabs</b> at ${new Date().toLocaleTimeString('en-IN')}` +
-    (errors.length ? `<br/>⚠️ Skipped: ${errors.join(', ')}` : '');
+  setSheetStatus('connected',`✅ Synced ${loaded} tab(s)`);
+  document.getElementById('sheetMsg').innerHTML=`✅ <b>Loaded ${loaded} tab(s)</b> at ${new Date().toLocaleTimeString('en-IN')}`+(errors.length?`<br/>⚠️ ${errors.join(', ')}`:'');
   document.getElementById('syncBanner').classList.add('visible');
-  document.getElementById('syncIndicator').style.display = 'flex';
-  document.getElementById('syncText').textContent = 'Synced';
-  document.getElementById('altImport').style.display = 'none';
+  document.getElementById('syncIndicator').style.display='flex';
+  document.getElementById('syncText').textContent='Synced';
+  startAutoRefresh();
   refreshAll();
 }
 
-async function syncToSheets() {
-  const url = (S.get('mw_sheet_url') || '').trim();
-  if (!url) return;
-  try {
-    const skus    = S.get('mw_skus')    || [];
-    const history = S.get('mw_history') || [];
-    const skuB64  = btoa(unescape(encodeURIComponent(JSON.stringify(skus))));
-    const histB64 = btoa(unescape(encodeURIComponent(JSON.stringify(history))));
-    // fire and forget
-    fetch(`${url}?action=write&tab=SKUs&data=${encodeURIComponent(skuB64)}`).catch(()=>{});
-    fetch(`${url}?action=write&tab=PriceHistory&data=${encodeURIComponent(histB64)}`).catch(()=>{});
-    const el = document.getElementById('syncText');
-    if (el) el.textContent = 'Synced ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
-  } catch(e) {}
+function jsonpWrite(url,tab,action,rowData){
+  return new Promise(resolve=>{
+    if(!url){resolve({ok:false});return;}
+    const cb='mww_'+Date.now()+'_'+(Math.random()*1e6|0);
+    const timer=setTimeout(()=>{delete window[cb];const el=document.getElementById(cb);if(el)el.remove();resolve({ok:false,error:'timeout'});},15000);
+    window[cb]=(data)=>{clearTimeout(timer);delete window[cb];const el=document.getElementById(cb);if(el)el.remove();resolve(data);};
+    let src=`${url}?action=${action}&tab=${encodeURIComponent(tab)}&callback=${cb}`;
+    if(rowData) src+=`&row=${encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(rowData)))))}`;
+    const s=document.createElement('script');s.id=cb;s.src=src;
+    s.onerror=()=>{clearTimeout(timer);delete window[cb];s.remove();resolve({ok:false});};
+    document.head.appendChild(s);
+  });
 }
 
-// ── ALTERNATIVE: Import by pasting JSON from sheet URL ──
-// User opens sheet URL in browser, we read the published CSV
-async function importFromCsvUrl() {
-  const csvUrl = document.getElementById('csvUrlInput').value.trim();
-  if (!csvUrl) { alert('Paste your Google Sheet published CSV URL'); return; }
-  document.getElementById('csvMsg').textContent = 'Fetching...';
-  try {
-    const res = await fetch(csvUrl);
-    const text = await res.text();
-    const rows = text.trim().split('\n').map(r => r.split(',').map(c => c.replace(/^"|"$/g,'').trim()));
-    if (rows.length < 2) { document.getElementById('csvMsg').textContent = '❌ Empty sheet or wrong URL'; return; }
-    const keys = rows[0];
-    const data = rows.slice(1).map(r => {
-      const obj = {};
-      keys.forEach((k,i) => obj[k] = r[i]||'');
-      return obj;
-    });
-    // Detect which tab this is by its columns
-    if (keys.includes('code') && keys.includes('mrp')) {
-      S.set('mw_skus', data);
-      document.getElementById('csvMsg').innerHTML = `✅ Imported ${data.length} SKUs!`;
-    } else if (keys.includes('skuCode') && keys.includes('oldVal')) {
-      S.set('mw_history', data);
-      document.getElementById('csvMsg').innerHTML = `✅ Imported ${data.length} history entries!`;
-    } else if (keys.includes('username')) {
-      S.set('mw_users', data);
-      document.getElementById('csvMsg').innerHTML = `✅ Imported ${data.length} users!`;
-    } else if (keys.includes('brand') || keys.length === 1) {
-      S.set('mw_brands', data.map(r => Object.values(r)[0]).filter(Boolean));
-      document.getElementById('csvMsg').innerHTML = `✅ Imported brands!`;
-    } else {
-      document.getElementById('csvMsg').textContent = '❌ Could not detect tab type from columns';
-      return;
-    }
-    refreshAll();
-  } catch(e) {
-    document.getElementById('csvMsg').innerHTML = `❌ Error: ${e.message}. Make sure the sheet is published publicly.`;
-  }
+async function syncToSheets(){
+  const url=(S.get('mw_sheet_url')||'').trim();
+  if(!url) return;
+  try{
+    const skus=S.get('mw_skus')||[];
+    const history=S.get('mw_history')||[];
+    await jsonpWrite(url,'SKUs','clear',null);
+    for(const row of skus) await jsonpWrite(url,'SKUs','append',row);
+    await jsonpWrite(url,'PriceHistory','clear',null);
+    for(const row of history) await jsonpWrite(url,'PriceHistory','append',row);
+    const el=document.getElementById('syncText');
+    if(el) el.textContent='Saved ✓ '+new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+  }catch(e){console.warn('Sheet write:',e.message);}
 }
 
 function copyScript() {
@@ -1177,6 +1078,59 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => { if(e.target===m) m.classList.remove('open'); });
 });
+
+// ═══════════════════════════════════════════════
+// AUTO-REFRESH — every 5 minutes if sheet connected
+// ═══════════════════════════════════════════════
+let autoRefreshInterval = null;
+let countdownInterval   = null;
+let nextSyncIn          = 300; // seconds
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+
+  // Countdown display
+  nextSyncIn = 300;
+  countdownInterval = setInterval(() => {
+    nextSyncIn--;
+    const el = document.getElementById('syncCountdown');
+    if (el) {
+      const m = Math.floor(nextSyncIn / 60);
+      const s = nextSyncIn % 60;
+      el.textContent = `Next sync in ${m}:${String(s).padStart(2,'0')}`;
+    }
+    if (nextSyncIn <= 0) nextSyncIn = 300;
+  }, 1000);
+
+  // Auto-sync every 5 minutes
+  autoRefreshInterval = setInterval(async () => {
+    const url = (S.get('mw_sheet_url') || '').trim();
+    if (!url) return;
+    nextSyncIn = 300;
+    const el = document.getElementById('syncText');
+    if (el) el.textContent = 'Syncing...';
+    await loadFromSheets();
+  }, 5 * 60 * 1000);
+}
+
+function stopAutoRefresh() {
+  if (autoRefreshInterval) { clearInterval(autoRefreshInterval); autoRefreshInterval = null; }
+  if (countdownInterval)   { clearInterval(countdownInterval);   countdownInterval   = null; }
+}
+
+// Kick off auto-refresh after login if sheet is connected
+const _origCheckSheetUrl = checkSheetUrl;
+checkSheetUrl = function() {
+  _origCheckSheetUrl();
+  if (S.get('mw_sheet_url')) startAutoRefresh();
+};
+
+// Also start when sync succeeds inside loadFromSheets
+const _origLoadFromSheets = loadFromSheets;
+loadFromSheets = async function() {
+  await _origLoadFromSheets();
+  if (S.get('mw_sheet_url')) startAutoRefresh();
+};
 
 // ═══════════════════════════════════════════════
 // INIT
